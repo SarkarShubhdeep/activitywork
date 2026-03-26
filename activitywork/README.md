@@ -1,6 +1,7 @@
 # ActivityWork App
 
 Local-first MVP application that ingests ActivityWatch data and prepares it for downstream processing.
+<img src="./assets/activity-work-diagram.png" alt="ActivityWork Diagram" width="600" style="max-width: 100%; height: auto;" />
 
 ## Tech Stack
 
@@ -17,8 +18,8 @@ Local-first MVP application that ingests ActivityWatch data and prepares it for 
 - Live preview API at `/api/aw/preview`.
 - ActivityWatch client utilities in `lib/activitywatch-client.ts`.
 - Browser console tracking via `app/preview-console.tsx`:
-  - Polls every 5 seconds
-  - Logs `ActivityWatch live update:` when newer events are detected
+    - Polls every 5 seconds
+    - Logs `ActivityWatch live update:` when newer events are detected
 - Watcher discovery in preview response (`buckets`) so you can inspect available sources.
 
 ## ActivityWatch Preview Behavior
