@@ -35,7 +35,7 @@ The preview endpoint prefers watcher buckets in this order when a specific bucke
 You can also force a bucket manually:
 
 ```bash
-curl "http://localhost:3000/api/aw/preview?bucketId=<bucket-id>&limit=50"
+curl "http://localhost:5801/api/aw/preview?bucketId=<bucket-id>&limit=50"
 ```
 
 ## Local Development
@@ -45,7 +45,14 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:5801](http://localhost:5801).
+
+## Local Services
+
+- `ActivityWatch` runs on `http://localhost:5800`
+- `ActivityWork` runs on `http://localhost:5801`
+- `TimeHarbor` runs on `http://localhost:3000`
+- Legacy `timeharbor-old` repository is set up in this workspace for reference/migration work.
 
 ## Quality Checks
 
