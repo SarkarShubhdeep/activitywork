@@ -22,11 +22,21 @@ type PreviewResponse = {
     error?: string;
 };
 
+type BucketMode = "auto" | "default" | "manual";
+type WatcherCategory = "window" | "web" | "vscode" | "afk";
+type SourcePreferences = {
+    bucketMode: BucketMode;
+    manualBucketId: string | null;
+    watcherFilters: Record<WatcherCategory, boolean>;
+};
+
 type ActivityEvent = {
     id?: number;
     timestamp?: string;
     duration?: number;
     data?: Record<string, unknown>;
+    bucketId?: string;
+    watcher?: WatcherCategory | "unknown";
 };
 
 type NormalizedFeedEvent = {
@@ -39,6 +49,18 @@ type NormalizedFeedEvent = {
     app: string;
     url: string | null;
     category: string;
+    watcher: WatcherCategory | "unknown";
+};
+
+const DEFAULT_SOURCE_PREFERENCES: SourcePreferences = {
+    bucketMode: "auto",
+    manualBucketId: null,
+    watcherFilters: {
+        window: true,
+        web: true,
+        vscode: true,
+        afk: true,
+    },
 };
 
 function toDurationLabel(seconds: number) {
@@ -74,6 +96,7 @@ function asString(value: unknown) {
 function normalizeEvent(
     raw: ActivityEvent,
     index: number,
+    watcher: WatcherCategory | "unknown",
 ): NormalizedFeedEvent {
     const data = raw.data ?? {};
     const app =
@@ -110,16 +133,83 @@ function normalizeEvent(
         app,
         url,
         category,
+        watcher,
     };
+}
+
+function parseWatcherFromBucketId(
+    bucketId: string | undefined,
+): WatcherCategory | "unknown" {
+    if (!bucketId) return "unknown";
+    const lowerId = bucketId.toLowerCase();
+    if (lowerId.includes("aw-watcher-window")) return "window";
+    if (lowerId.includes("aw-watcher-web")) return "web";
+    if (lowerId.includes("aw-watcher-vscode")) return "vscode";
+    if (lowerId.includes("aw-watcher-afk")) return "afk";
+    return "unknown";
+}
+
+function readSourcePreferences(): SourcePreferences {
+    try {
+        const raw = localStorage.getItem("aw-source-preferences");
+        if (!raw) return DEFAULT_SOURCE_PREFERENCES;
+
+        const parsed = JSON.parse(raw) as Partial<{
+            bucketMode: BucketMode;
+            manualBucketId: string | null;
+            watcherFilters: Partial<Record<WatcherCategory, boolean>>;
+        }>;
+
+        const bucketMode =
+            parsed.bucketMode === "auto" ||
+            parsed.bucketMode === "default" ||
+            parsed.bucketMode === "manual"
+                ? parsed.bucketMode
+                : DEFAULT_SOURCE_PREFERENCES.bucketMode;
+
+        const manualBucketId =
+            typeof parsed.manualBucketId === "string" &&
+            parsed.manualBucketId.trim().length > 0
+                ? parsed.manualBucketId.trim()
+                : null;
+
+        return {
+            bucketMode,
+            manualBucketId,
+            watcherFilters: {
+                ...DEFAULT_SOURCE_PREFERENCES.watcherFilters,
+                ...(parsed.watcherFilters ?? {}),
+            },
+        };
+    } catch {
+        return DEFAULT_SOURCE_PREFERENCES;
+    }
 }
 
 export function PreviewConsole() {
     const [data, setData] = useState<PreviewResponse | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [sourcePreferences, setSourcePreferences] = useState<SourcePreferences>(
+        DEFAULT_SOURCE_PREFERENCES,
+    );
     const [highlightedEventId, setHighlightedEventId] = useState<string | null>(
         null,
     );
     const knownEventIdsRef = useRef<Set<string>>(new Set());
+
+    useEffect(() => {
+        function refreshPreferences() {
+            const nextPreferences = readSourcePreferences();
+            setSourcePreferences(nextPreferences);
+        }
+
+        refreshPreferences();
+        window.addEventListener("storage", refreshPreferences);
+
+        return () => {
+            window.removeEventListener("storage", refreshPreferences);
+        };
+    }, []);
 
     useEffect(() => {
         let isMounted = true;
@@ -127,7 +217,35 @@ export function PreviewConsole() {
 
         async function loadPreview() {
             try {
-                const response = await fetch("/api/aw/preview");
+                const prefs = readSourcePreferences();
+                setSourcePreferences(prefs);
+
+                const params = new URLSearchParams();
+                const bucketMode = prefs.bucketMode;
+
+                if (bucketMode === "manual" && prefs.manualBucketId) {
+                    params.set("bucketId", prefs.manualBucketId);
+                }
+                if (bucketMode === "auto") {
+                    const enabledWatchers = (
+                        Object.entries(prefs.watcherFilters) as Array<
+                            [WatcherCategory, boolean]
+                        >
+                    )
+                        .filter(([, enabled]) => enabled)
+                        .map(([watcher]) => watcher);
+                    if (enabledWatchers.length > 0) {
+                        params.set(
+                            "watcherCategories",
+                            enabledWatchers.join(","),
+                        );
+                    }
+                }
+
+                const query = params.toString();
+                const response = await fetch(
+                    query ? `/api/aw/preview?${query}` : "/api/aw/preview",
+                );
                 const json = (await response.json()) as PreviewResponse;
 
                 if (!isMounted) {
@@ -168,7 +286,19 @@ export function PreviewConsole() {
     }, []);
 
     const normalizedFeed = ((data?.sample ?? []) as ActivityEvent[])
-        .map(normalizeEvent)
+        .map((event, index) =>
+            normalizeEvent(
+                event,
+                index,
+                event.watcher ??
+                    parseWatcherFromBucketId(event.bucketId ?? data?.bucketId),
+            ),
+        )
+        .filter((event) =>
+            event.watcher === "unknown"
+                ? true
+                : sourcePreferences.watcherFilters[event.watcher],
+        )
         .sort((a, b) => b.startedAtMs - a.startedAtMs);
 
     useEffect(() => {
@@ -188,19 +318,22 @@ export function PreviewConsole() {
             const newestIncomingId = normalizedFeed.find((event) =>
                 justArrived.includes(event.id),
             )?.id;
-
-            if (newestIncomingId) {
-                setHighlightedEventId(newestIncomingId);
-            }
-
-            const timeoutId = setTimeout(() => {
+            const highlightTimeoutId = setTimeout(() => {
+                if (newestIncomingId) {
+                    setHighlightedEventId(newestIncomingId);
+                }
+            }, 0);
+            const clearTimeoutId = setTimeout(() => {
                 setHighlightedEventId((current) =>
                     current === newestIncomingId ? null : current,
                 );
             }, 500);
 
             knownEventIdsRef.current = new Set(currentIds);
-            return () => clearTimeout(timeoutId);
+            return () => {
+                clearTimeout(highlightTimeoutId);
+                clearTimeout(clearTimeoutId);
+            };
         }
 
         knownEventIdsRef.current = new Set(currentIds);
@@ -261,8 +394,8 @@ export function PreviewConsole() {
                 This panel refreshes automatically every 5 seconds.
             </p>
             <p className="shrink-0 text-xs text-zinc-500 dark:text-zinc-400">
-                Polling every 5 seconds. Browser console still logs raw live
-                updates.
+                Polling every 5 seconds with source selection preferences
+                applied.
             </p>
         </div>
     );

@@ -13,9 +13,89 @@ import {
 const triggerClass =
     "inline-flex items-center gap-2 rounded-md border border-zinc-200 bg-white px-3 py-2 text-xs font-medium text-zinc-800 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800";
 
+type BucketMode = "auto" | "default" | "manual";
+type WatcherCategory = "window" | "web" | "vscode" | "afk";
+
+const watcherCategories: Array<{
+    id: WatcherCategory;
+    label: string;
+    description: string;
+}> = [
+    {
+        id: "window",
+        label: "Window",
+        description: "Desktop window events",
+    },
+    {
+        id: "web",
+        label: "Web",
+        description: "Browser tab/url events",
+    },
+    {
+        id: "vscode",
+        label: "VS Code",
+        description: "Coding editor events",
+    },
+    {
+        id: "afk",
+        label: "AFK",
+        description: "Idle/away activity events",
+    },
+];
+
 export function HomeShell() {
     const feedPanelRef = usePanelRef();
     const [feedOpen, setFeedOpen] = React.useState(false);
+    const [bucketMode, setBucketMode] = React.useState<BucketMode>("auto");
+    const [watcherFilters, setWatcherFilters] = React.useState<
+        Record<WatcherCategory, boolean>
+    >({
+        window: true,
+        web: true,
+        vscode: true,
+        afk: true,
+    });
+    const [manualBucketId, setManualBucketId] = React.useState("");
+
+    React.useEffect(() => {
+        try {
+            const raw = localStorage.getItem("aw-source-preferences");
+            if (!raw) return;
+
+            const parsed = JSON.parse(raw) as {
+                bucketMode?: BucketMode;
+                manualBucketId?: string | null;
+                watcherFilters?: Partial<Record<WatcherCategory, boolean>>;
+            };
+
+            if (
+                parsed.bucketMode === "auto" ||
+                parsed.bucketMode === "default" ||
+                parsed.bucketMode === "manual"
+            ) {
+                setBucketMode(parsed.bucketMode);
+            }
+
+            if (parsed.watcherFilters) {
+                setWatcherFilters((prev) => ({
+                    ...prev,
+                    ...parsed.watcherFilters,
+                }));
+            }
+            if (typeof parsed.manualBucketId === "string") {
+                setManualBucketId(parsed.manualBucketId);
+            }
+        } catch {
+            // Ignore malformed local preference payloads.
+        }
+    }, []);
+
+    React.useEffect(() => {
+        localStorage.setItem(
+            "aw-source-preferences",
+            JSON.stringify({ bucketMode, manualBucketId, watcherFilters }),
+        );
+    }, [bucketMode, manualBucketId, watcherFilters]);
 
     const toggleFeed = React.useCallback(() => {
         const p = feedPanelRef.current;
@@ -23,6 +103,10 @@ export function HomeShell() {
         if (p.isCollapsed()) p.expand();
         else p.collapse();
     }, [feedPanelRef]);
+
+    const toggleWatcherFilter = React.useCallback((id: WatcherCategory) => {
+        setWatcherFilters((prev) => ({ ...prev, [id]: !prev[id] }));
+    }, []);
 
     return (
         <ResizablePanelGroup
@@ -93,14 +177,103 @@ export function HomeShell() {
                             </a>
                         </div>
 
-                        {/* TODO: Add a section for the plugin settings */}
-                        <div className="mt-6">
+                        <div className="mt-8 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
                             <h2 className="text-lg font-semibold">
                                 Plugin Settings
                             </h2>
-                            <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                                Configure the plugin settings here.
+                            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                                Source selection preferences for bucket strategy
+                                and watcher categories.
                             </p>
+
+                            <div className="mt-4">
+                                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+                                    Preferred Bucket
+                                </p>
+                                <div className="mt-2 grid gap-2 sm:grid-cols-3">
+                                    {(
+                                        [
+                                            ["auto", "Auto"],
+                                            ["default", "Default"],
+                                            ["manual", "Manual"],
+                                        ] as const
+                                    ).map(([value, label]) => (
+                                        <label
+                                            key={value}
+                                            className="flex cursor-pointer items-center gap-2 rounded-md border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700"
+                                        >
+                                            <input
+                                                type="radio"
+                                                name="bucket-mode"
+                                                value={value}
+                                                checked={bucketMode === value}
+                                                onChange={() =>
+                                                    setBucketMode(value)
+                                                }
+                                                className="h-4 w-4 accent-zinc-900 dark:accent-zinc-100"
+                                            />
+                                            <span>{label}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                                {bucketMode === "manual" ? (
+                                    <div className="mt-3">
+                                        <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                                            Manual bucket id
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={manualBucketId}
+                                            onChange={(event) =>
+                                                setManualBucketId(
+                                                    event.target.value,
+                                                )
+                                            }
+                                            placeholder="aw-watcher-window_..."
+                                            className="mt-1 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none ring-zinc-400 placeholder:text-zinc-400 focus:ring-2 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:ring-zinc-500"
+                                        />
+                                    </div>
+                                ) : null}
+                            </div>
+
+                            <div className="mt-5">
+                                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+                                    Watcher Categories
+                                </p>
+                                <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
+                                    Include or exclude ActivityWatch categories
+                                    from the bridge.
+                                </p>
+                                <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                                    {watcherCategories.map((category) => (
+                                        <label
+                                            key={category.id}
+                                            className="flex cursor-pointer items-start gap-2 rounded-md border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700"
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                checked={
+                                                    watcherFilters[category.id]
+                                                }
+                                                onChange={() =>
+                                                    toggleWatcherFilter(
+                                                        category.id,
+                                                    )
+                                                }
+                                                className="mt-0.5 h-4 w-4 accent-zinc-900 dark:accent-zinc-100"
+                                            />
+                                            <span>
+                                                <span className="block font-medium">
+                                                    {category.label}
+                                                </span>
+                                                <span className="text-xs text-zinc-600 dark:text-zinc-400">
+                                                    {category.description}
+                                                </span>
+                                            </span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
                     </main>
                 </div>
