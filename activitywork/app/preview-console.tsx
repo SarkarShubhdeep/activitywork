@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 type BucketInfo = {
@@ -341,7 +342,7 @@ export function PreviewConsole() {
 
     if (error) {
         return (
-            <p className="text-sm text-red-600 dark:text-red-400">
+            <p className="text-sm text-destructive">
                 {`Preview failed: ${error}`}
             </p>
         );
@@ -349,51 +350,56 @@ export function PreviewConsole() {
 
     if (!data) {
         return (
-            <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                Loading preview...
-            </p>
+            <p className="text-sm text-muted-foreground">Loading preview…</p>
         );
     }
 
     return (
-        <div className="flex min-h-0 flex-1 flex-col gap-3 text-sm text-zinc-700 dark:text-zinc-300">
-            <div className="shrink-0 space-y-3">
-                <p>{`bucketId: ${data.bucketId ?? "n/a"}`}</p>
-                <p>{`eventCount: ${data.eventCount ?? 0}`}</p>
-                <p>{`latestEventAt: ${data.latestEventAt ?? "n/a"}`}</p>
-                <p>{`watchers available: ${data.bucketCount ?? 0}`}</p>
-                {/* <p>{`feedEntries: ${normalizedFeed.length}`}</p> */}
+        <div className="flex min-h-0 flex-1 flex-col gap-3 text-sm text-foreground">
+            <div className="flex shrink-0 flex-wrap gap-2">
+                <Badge variant="outline" className="font-normal">
+                    {`bucketId: ${data.bucketId ?? "n/a"}`}
+                </Badge>
+                <Badge variant="outline" className="font-normal">
+                    {`events: ${data.eventCount ?? 0}`}
+                </Badge>
+                <Badge variant="outline" className="font-normal">
+                    {`latest: ${data.latestEventAt ?? "n/a"}`}
+                </Badge>
+                <Badge variant="outline" className="font-normal">
+                    {`watchers: ${data.bucketCount ?? 0}`}
+                </Badge>
             </div>
 
-            <ScrollArea className="max-h-[600px] rounded-md">
-                <div className="space-y-2 p-3 h-full">
+            <ScrollArea className="max-h-[600px] rounded-md border border-border">
+                <div className="h-full space-y-2 p-3">
                     {normalizedFeed.length > 0 ? (
                         normalizedFeed.map((event) => (
                             <div key={event.id} className="relative">
                                 {highlightedEventId === event.id ? (
                                     <span
-                                        className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-orange-500"
+                                        className="absolute top-2 right-2 size-2.5 rounded-full bg-primary"
                                         aria-label="New event"
                                         title="New event"
                                     />
                                 ) : null}
-                                <pre className="overflow-x-auto rounded-md border border-zinc-200 bg-zinc-100 p-3 text-xs leading-5 dark:border-zinc-800 dark:bg-zinc-900">
+                                <pre className="overflow-x-auto rounded-md border border-border bg-muted p-3 text-xs leading-5">
                                     {JSON.stringify(event, null, 2)}
                                 </pre>
                             </div>
                         ))
                     ) : (
-                        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                        <p className="text-xs text-muted-foreground">
                             No events in preview sample yet.
                         </p>
                     )}
                 </div>
             </ScrollArea>
 
-            <p className="shrink-0 text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="shrink-0 text-xs text-muted-foreground">
                 This panel refreshes automatically every 5 seconds.
             </p>
-            <p className="shrink-0 text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="shrink-0 text-xs text-muted-foreground">
                 Polling every 5 seconds with source selection preferences
                 applied.
             </p>

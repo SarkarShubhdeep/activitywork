@@ -1,15 +1,32 @@
 "use client";
 
+import { AppWindow } from "lucide-react";
+
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card";
+
 export function TrackedWindowsPlaceholder() {
     return (
-        <div className="flex min-h-[40vh] flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 bg-zinc-50/50 px-6 py-16 text-center dark:border-zinc-600 dark:bg-zinc-900/30">
-            <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                Tracked windows
-            </p>
-            <p className="mt-2 max-w-sm text-sm text-zinc-600 dark:text-zinc-400">
-                Placeholder screen. The list of tracked app and window names
-                will appear here in a later change.
-            </p>
-        </div>
+        <Card className="border-dashed">
+            <CardHeader className="items-center pb-2 text-center">
+                <div className="flex size-12 items-center justify-center rounded-full bg-muted">
+                    <AppWindow
+                        className="size-6 text-muted-foreground"
+                        aria-hidden
+                    />
+                </div>
+                <CardTitle className="text-base">Tracked windows</CardTitle>
+                <CardDescription className="max-w-sm text-pretty">
+                    Placeholder screen. The list of tracked app and window names
+                    will appear here in a later change.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="flex min-h-[28vh] items-center justify-center pb-8" />
+        </Card>
     );
 }

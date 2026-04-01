@@ -1,12 +1,30 @@
 "use client";
 
-import * as React from "react";
+import {
+    Box,
+    ExternalLink,
+    Eye,
+    PanelRightClose,
+    PanelRightOpen,
+    Radar,
+} from "lucide-react";
+
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 export type BucketMode = "auto" | "default" | "manual";
 export type WatcherCategory = "window" | "web" | "vscode" | "afk";
-
-const triggerClass =
-    "inline-flex items-center gap-2 rounded-md border border-zinc-200 bg-white px-3 py-2 text-xs font-medium text-zinc-800 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800";
 
 const watcherCategories: Array<{
     id: WatcherCategory;
@@ -46,6 +64,12 @@ export type DashboardPageProps = {
     toggleWatcherFilter: (id: WatcherCategory) => void;
 };
 
+const bucketModes: Array<{ value: BucketMode; label: string }> = [
+    { value: "auto", label: "Auto" },
+    { value: "default", label: "Default" },
+    { value: "manual", label: "Manual" },
+];
+
 export function DashboardPage({
     feedOpen,
     onToggleFeed,
@@ -57,151 +81,210 @@ export function DashboardPage({
     toggleWatcherFilter,
 }: DashboardPageProps) {
     return (
-        <>
-            <div className="flex items-start justify-between gap-4">
-                <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400">
-                        ActivityWork Plugin
-                    </p>
-                    <h1 className="mt-3 text-3xl font-semibold tracking-tight">
+        <div className="flex flex-col gap-8">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0 space-y-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="secondary" className="font-normal">
+                            ActivityWork
+                        </Badge>
+                        <Badge variant="outline" className="font-normal">
+                            Plugin
+                        </Badge>
+                    </div>
+                    <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
                         Turn ActivityWatch events into actionable work logs
                     </h1>
-                    <p className="mt-4 max-w-3xl text-sm leading-6 text-zinc-600 dark:text-zinc-300">
+                    <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
                         This MVP landing page verifies real data flow from
                         ActivityWatch. It auto-fetches preview data and streams
                         updates to the browser console so you can validate
                         tracking behavior while switching windows.
                     </p>
                 </div>
-                <button
+                <Button
                     type="button"
+                    variant="secondary"
                     onClick={onToggleFeed}
-                    className={triggerClass}
+                    className="shrink-0 gap-2 self-start sm:self-auto"
                 >
-                    {feedOpen ? "Hide Live Feed" : "Open Live Feed"}
-                </button>
+                    {feedOpen ? (
+                        <>
+                            Hide live feed
+                            <PanelRightClose className="size-4" />
+                        </>
+                    ) : (
+                        <>
+                            Open live feed
+                            <PanelRightOpen className="size-4" />
+                        </>
+                    )}
+                </Button>
             </div>
 
-            <div className="mt-6 grid gap-3 text-sm md:grid-cols-3">
-                <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
-                    <p className="font-medium">Live Polling</p>
-                    <p className="mt-1 text-zinc-600 dark:text-zinc-400">
-                        Refreshes preview data every 5 seconds.
-                    </p>
-                </div>
-                <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
-                    <p className="font-medium">Console Visibility</p>
-                    <p className="mt-1 text-zinc-600 dark:text-zinc-400">
-                        Logs each newly detected event timestamp.
-                    </p>
-                </div>
-                <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
-                    <p className="font-medium">Watcher Discovery</p>
-                    <p className="mt-1 text-zinc-600 dark:text-zinc-400">
-                        Shows available ActivityWatch buckets.
-                    </p>
-                </div>
-            </div>
-
-            <div className="mt-6">
-                <a
-                    className="inline-flex items-center rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
-                    href="/api/aw/preview"
-                    target="_blank"
-                    rel="noreferrer"
-                >
-                    Open Raw API Response
-                </a>
-            </div>
-
-            <div className="mt-8 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
-                <h2 className="text-lg font-semibold">Plugin Settings</h2>
-                <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                    Source selection preferences for bucket strategy and watcher
-                    categories.
-                </p>
-
-                <div className="mt-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
-                        Preferred Bucket
-                    </p>
-                    <div className="mt-2 grid gap-2 sm:grid-cols-3">
-                        {(
-                            [
-                                ["auto", "Auto"],
-                                ["default", "Default"],
-                                ["manual", "Manual"],
-                            ] as const
-                        ).map(([value, label]) => (
-                            <label
-                                key={value}
-                                className="flex cursor-pointer items-center gap-2 rounded-md border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700"
-                            >
-                                <input
-                                    type="radio"
-                                    name="bucket-mode"
-                                    value={value}
-                                    checked={bucketMode === value}
-                                    onChange={() => setBucketMode(value)}
-                                    className="h-4 w-4 accent-zinc-900 dark:accent-zinc-100"
-                                />
-                                <span>{label}</span>
-                            </label>
-                        ))}
-                    </div>
-                    {bucketMode === "manual" ? (
-                        <div className="mt-3">
-                            <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                                Manual bucket id
-                            </label>
-                            <input
-                                type="text"
-                                value={manualBucketId}
-                                onChange={(event) =>
-                                    setManualBucketId(event.target.value)
-                                }
-                                placeholder="aw-watcher-window_..."
-                                className="mt-1 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none ring-zinc-400 placeholder:text-zinc-400 focus:ring-2 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:ring-zinc-500"
-                            />
+            <div className="grid gap-3 md:grid-cols-3">
+                <Card size="sm" className="py-3">
+                    <CardHeader className="px-3 pb-1">
+                        <div className="flex items-center gap-2">
+                            <Radar className="size-4 text-muted-foreground" />
+                            <CardTitle className="text-sm">Live polling</CardTitle>
                         </div>
-                    ) : null}
-                </div>
-
-                <div className="mt-5">
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
-                        Watcher Categories
-                    </p>
-                    <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
-                        Include or exclude ActivityWatch categories from the
-                        bridge.
-                    </p>
-                    <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                        {watcherCategories.map((category) => (
-                            <label
-                                key={category.id}
-                                className="flex cursor-pointer items-start gap-2 rounded-md border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700"
-                            >
-                                <input
-                                    type="checkbox"
-                                    checked={watcherFilters[category.id]}
-                                    onChange={() =>
-                                        toggleWatcherFilter(category.id)
-                                    }
-                                    className="mt-0.5 h-4 w-4 accent-zinc-900 dark:accent-zinc-100"
-                                />
-                                <span>
-                                    <span className="block font-medium">
-                                        {category.label}
-                                    </span>
-                                    <span className="text-xs text-zinc-600 dark:text-zinc-400">
-                                        {category.description}
-                                    </span>
-                                </span>
-                            </label>
-                        ))}
-                    </div>
-                </div>
+                        <CardDescription>
+                            Refreshes preview data every 5 seconds.
+                        </CardDescription>
+                    </CardHeader>
+                </Card>
+                <Card size="sm" className="py-3">
+                    <CardHeader className="px-3 pb-1">
+                        <div className="flex items-center gap-2">
+                            <Eye className="size-4 text-muted-foreground" />
+                            <CardTitle className="text-sm">
+                                Console visibility
+                            </CardTitle>
+                        </div>
+                        <CardDescription>
+                            Logs each newly detected event timestamp.
+                        </CardDescription>
+                    </CardHeader>
+                </Card>
+                <Card size="sm" className="py-3">
+                    <CardHeader className="px-3 pb-1">
+                        <div className="flex items-center gap-2">
+                            <Box className="size-4 text-muted-foreground" />
+                            <CardTitle className="text-sm">
+                                Watcher discovery
+                            </CardTitle>
+                        </div>
+                        <CardDescription>
+                            Shows available ActivityWatch buckets.
+                        </CardDescription>
+                    </CardHeader>
+                </Card>
             </div>
-        </>
+
+            <div>
+                <Button variant="default" asChild className="gap-2">
+                    <a
+                        href="/api/aw/preview"
+                        target="_blank"
+                        rel="noreferrer"
+                    >
+                        Open raw API response
+                        <ExternalLink className="size-4" />
+                    </a>
+                </Button>
+            </div>
+
+            <Card>
+                <CardHeader className="border-b border-border pb-4">
+                    <CardTitle>Plugin settings</CardTitle>
+                    <CardDescription>
+                        Source selection preferences for bucket strategy and
+                        watcher categories.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6 pt-6">
+                    <div className="space-y-3">
+                        <Label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                            Preferred bucket
+                        </Label>
+                        <RadioGroup
+                            value={bucketMode}
+                            onValueChange={(v) =>
+                                setBucketMode(v as BucketMode)
+                            }
+                            className="grid gap-3 sm:grid-cols-3"
+                        >
+                            {bucketModes.map(({ value, label }) => (
+                                <div
+                                    key={value}
+                                    className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2.5"
+                                >
+                                    <RadioGroupItem
+                                        value={value}
+                                        id={`bucket-${value}`}
+                                    />
+                                    <Label
+                                        htmlFor={`bucket-${value}`}
+                                        className="cursor-pointer font-normal"
+                                    >
+                                        {label}
+                                    </Label>
+                                </div>
+                            ))}
+                        </RadioGroup>
+                        {bucketMode === "manual" ? (
+                            <div className="space-y-2 pt-1">
+                                <Label
+                                    htmlFor="manual-bucket-id"
+                                    className="text-xs text-muted-foreground"
+                                >
+                                    Manual bucket id
+                                </Label>
+                                <Input
+                                    id="manual-bucket-id"
+                                    type="text"
+                                    value={manualBucketId}
+                                    onChange={(event) =>
+                                        setManualBucketId(event.target.value)
+                                    }
+                                    placeholder="aw-watcher-window_..."
+                                    autoComplete="off"
+                                />
+                            </div>
+                        ) : null}
+                    </div>
+
+                    <div className="space-y-3">
+                        <div>
+                            <Label className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                                Watcher categories
+                            </Label>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                                Include or exclude ActivityWatch categories from
+                                the bridge.
+                            </p>
+                        </div>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                            {watcherCategories.map((category) => (
+                                <div
+                                    key={category.id}
+                                    className="flex gap-3 rounded-lg border border-border bg-muted/20 p-3"
+                                >
+                                    <Checkbox
+                                        id={`watcher-${category.id}`}
+                                        checked={watcherFilters[category.id]}
+                                        onCheckedChange={(checked) => {
+                                            if (checked === "indeterminate")
+                                                return;
+                                            if (
+                                                checked !==
+                                                watcherFilters[category.id]
+                                            ) {
+                                                toggleWatcherFilter(
+                                                    category.id,
+                                                );
+                                            }
+                                        }}
+                                        className="mt-0.5"
+                                    />
+                                    <div className="grid min-w-0 gap-0.5 leading-none">
+                                        <Label
+                                            htmlFor={`watcher-${category.id}`}
+                                            className="cursor-pointer font-medium"
+                                        >
+                                            {category.label}
+                                        </Label>
+                                        <span className="text-xs text-muted-foreground">
+                                            {category.description}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
     );
 }
