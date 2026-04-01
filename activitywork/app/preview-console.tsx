@@ -2,7 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { Badge } from "@/components/ui/badge";
+import { ChevronDown } from "lucide-react";
+
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 type BucketInfo = {
@@ -30,6 +33,14 @@ type SourcePreferences = {
     manualBucketId: string | null;
     watcherFilters: Record<WatcherCategory, boolean>;
 };
+
+function parseActiveBucketIds(bucketId: string | undefined): string[] {
+    if (!bucketId) return [];
+    return bucketId
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
+}
 
 type ActivityEvent = {
     id?: number;
@@ -190,12 +201,12 @@ function readSourcePreferences(): SourcePreferences {
 export function PreviewConsole() {
     const [data, setData] = useState<PreviewResponse | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const [sourcePreferences, setSourcePreferences] = useState<SourcePreferences>(
-        DEFAULT_SOURCE_PREFERENCES,
-    );
+    const [sourcePreferences, setSourcePreferences] =
+        useState<SourcePreferences>(DEFAULT_SOURCE_PREFERENCES);
     const [highlightedEventId, setHighlightedEventId] = useState<string | null>(
         null,
     );
+    const [bucketCardOpen, setBucketCardOpen] = useState(false);
     const knownEventIdsRef = useRef<Set<string>>(new Set());
 
     useEffect(() => {
@@ -354,25 +365,72 @@ export function PreviewConsole() {
         );
     }
 
+    const activeBucketIds = parseActiveBucketIds(data.bucketId);
+
     return (
         <div className="flex min-h-0 flex-1 flex-col gap-3 text-sm text-foreground">
-            <div className="flex shrink-0 flex-wrap gap-2">
-                <Badge variant="outline" className="font-normal">
-                    {`bucketId: ${data.bucketId ?? "n/a"}`}
-                </Badge>
-                <Badge variant="outline" className="font-normal">
-                    {`events: ${data.eventCount ?? 0}`}
-                </Badge>
-                <Badge variant="outline" className="font-normal">
-                    {`latest: ${data.latestEventAt ?? "n/a"}`}
-                </Badge>
-                <Badge variant="outline" className="font-normal">
-                    {`watchers: ${data.bucketCount ?? 0}`}
-                </Badge>
-            </div>
+            <Collapsible
+                open={bucketCardOpen}
+                onOpenChange={setBucketCardOpen}
+                className="shrink-0"
+            >
+                <Card
+                    role="button"
+                    tabIndex={0}
+                    aria-expanded={bucketCardOpen}
+                    aria-label={
+                        bucketCardOpen
+                            ? "Collapse tracking details"
+                            : "Expand tracking details"
+                    }
+                    className="gap-0 py-0 shadow-none outline-none transition-colors hover:bg-muted/25 focus-visible:ring-2 focus-visible:ring-ring/50"
+                    onClick={() => setBucketCardOpen((open) => !open)}
+                    onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            setBucketCardOpen((open) => !open);
+                        }
+                    }}
+                >
+                    <CardHeader className="space-y-0 px-3 py-3">
+                        <div className="flex w-full items-center justify-between gap-2">
+                            <span className="text-xs font-medium">
+                                Tracking Details
+                            </span>
+                            <ChevronDown
+                                className={`size-4 shrink-0 text-muted-foreground transition-transform duration-200 ${bucketCardOpen ? "rotate-180" : ""}`}
+                                aria-hidden
+                            />
+                        </div>
+                    </CardHeader>
+                    <CollapsibleContent>
+                        <CardContent className="border-t border-border px-3 pt-0 pb-3">
+                            {activeBucketIds.length > 0 ? (
+                                <ul className="space-y-1.5 border-b border-border py-3 text-xs">
+                                    {activeBucketIds.map((id, index) => (
+                                        <li key={id}>
+                                            <span className="font-medium">
+                                                {`Bucket ${index + 1}`}
+                                            </span>
+                                            <span className="ml-2 break-all text-muted-foreground">
+                                                {id}
+                                            </span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : null}
+                            <div className="flex flex-col gap-2 pt-3 text-xs text-muted-foreground">
+                                <span>{`events: ${data.eventCount ?? 0}`}</span>
+                                <span>{`latest: ${data.latestEventAt ?? "n/a"}`}</span>
+                                <span>{`watchers: ${data.bucketCount ?? 0}`}</span>
+                            </div>
+                        </CardContent>
+                    </CollapsibleContent>
+                </Card>
+            </Collapsible>
 
-            <ScrollArea className="max-h-[600px] rounded-md border border-border">
-                <div className="h-full space-y-2 p-3">
+            <ScrollArea className="max-h-[800px]">
+                <div className="h-full space-y-2">
                     {normalizedFeed.length > 0 ? (
                         normalizedFeed.map((event) => (
                             <div key={event.id} className="relative">

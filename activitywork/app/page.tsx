@@ -1,5 +1,5 @@
 import { HomeShell } from "./home-shell";
 
-export default function Home() {
+export default function About() {
   return <HomeShell />;
 }

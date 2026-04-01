@@ -1,44 +1,35 @@
 "use client";
 
 import * as React from "react";
-import { AppWindow, LayoutDashboard, PanelRightClose } from "lucide-react";
+import { PanelRightClose, PanelRightOpen } from "lucide-react";
 import { usePanelRef } from "react-resizable-panels";
 
 import { PreviewConsole } from "./preview-console";
+import { AboutPage } from "./pages/home-page";
 import {
-    DashboardPage,
+    PluginSettingsPage,
     type BucketMode,
     type WatcherCategory,
-} from "./pages/dashboard-page";
+} from "./pages/plugin-settings-page";
 import { TrackedWindowsPlaceholder } from "./pages/tracked-windows-placeholder";
+import {
+    AppSidebar,
+    getAppPageTitle,
+    type AppPageId,
+} from "@/components/app-sidebar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import {
-    ResizableHandle,
-    ResizablePanel,
-    ResizablePanelGroup,
-} from "@/components/ui/resizable";
-import {
-    Tabs,
-    TabsContent,
-    TabsList,
-    TabsTrigger,
-} from "@/components/ui/tabs";
-
-type AppPageId = "dashboard" | "tracked-windows";
-
-function parseAppPageId(value: string): AppPageId | null {
-    if (value === "dashboard" || value === "tracked-windows") {
-        return value;
-    }
-    return null;
-}
+    SidebarInset,
+    SidebarProvider,
+    SidebarTrigger,
+} from "@/components/ui/sidebar";
 
 export function HomeShell() {
     const feedPanelRef = usePanelRef();
     const [feedOpen, setFeedOpen] = React.useState(false);
-    const [activePage, setActivePage] = React.useState<AppPageId>("dashboard");
+    const [activePage, setActivePage] = React.useState<AppPageId>("home");
     const [bucketMode, setBucketMode] = React.useState<BucketMode>("auto");
     const [watcherFilters, setWatcherFilters] = React.useState<
         Record<WatcherCategory, boolean>
@@ -101,132 +92,111 @@ export function HomeShell() {
         setWatcherFilters((prev) => ({ ...prev, [id]: !prev[id] }));
     }, []);
 
-    const onTabChange = React.useCallback((value: string) => {
-        const next = parseAppPageId(value);
-        if (next) setActivePage(next);
-    }, []);
-
     return (
-        <ResizablePanelGroup
-            orientation="horizontal"
-            className="min-h-screen w-full"
-            defaultLayout={{ main: 100, feed: 0 }}
-        >
-            <ResizablePanel id="main" minSize="40%" className="min-w-0">
-                <div className="min-h-screen w-full bg-background px-4 py-8 text-foreground sm:px-6 sm:py-12">
-                    <Card className="mx-auto w-full max-w-5xl gap-0 border-0 py-0 shadow-none ring-1 ring-border">
-                        <CardContent className="flex flex-col gap-0 px-4 pt-4 pb-6 sm:px-8 sm:pt-6 sm:pb-8">
-                            <Tabs
-                                value={activePage}
-                                onValueChange={onTabChange}
-                                className="w-full gap-0"
-                            >
-                                <nav
-                                    className="flex flex-col gap-4"
-                                    aria-label="App sections"
-                                >
-                                    <TabsList
-                                        variant="line"
-                                        className="h-auto w-full min-w-0 flex-wrap justify-start gap-1 bg-transparent p-0 sm:flex-nowrap"
-                                    >
-                                        <TabsTrigger
-                                            value="dashboard"
-                                            className="gap-1.5 px-3 py-2 data-[state=active]:after:opacity-100"
-                                        >
-                                            <LayoutDashboard
-                                                className="size-4 shrink-0"
-                                                aria-hidden
-                                            />
-                                            <span>Home</span>
-                                        </TabsTrigger>
-                                        <TabsTrigger
-                                            value="tracked-windows"
-                                            className="gap-1.5 px-3 py-2 data-[state=active]:after:opacity-100"
-                                        >
-                                            <AppWindow
-                                                className="size-4 shrink-0"
-                                                aria-hidden
-                                            />
-                                            <span className="max-w-36 truncate sm:max-w-none">
-                                                Tracked windows
-                                            </span>
-                                        </TabsTrigger>
-                                    </TabsList>
-                                    <Separator className="bg-border" />
-                                </nav>
-
-                                <TabsContent
-                                    value="dashboard"
-                                    className="mt-6 min-w-0 flex-1 outline-none"
-                                >
-                                    <DashboardPage
-                                        feedOpen={feedOpen}
-                                        onToggleFeed={toggleFeed}
-                                        bucketMode={bucketMode}
-                                        setBucketMode={setBucketMode}
-                                        manualBucketId={manualBucketId}
-                                        setManualBucketId={setManualBucketId}
-                                        watcherFilters={watcherFilters}
-                                        toggleWatcherFilter={toggleWatcherFilter}
-                                    />
-                                </TabsContent>
-                                <TabsContent
-                                    value="tracked-windows"
-                                    className="mt-6 min-w-0 flex-1 outline-none"
-                                >
-                                    <TrackedWindowsPlaceholder />
-                                </TabsContent>
-                            </Tabs>
-                        </CardContent>
-                    </Card>
-                </div>
-            </ResizablePanel>
-
-            <ResizableHandle withHandle />
-
-            <ResizablePanel
-                id="feed"
-                panelRef={feedPanelRef}
-                collapsible
-                collapsedSize="0%"
-                minSize="18%"
-                maxSize="42%"
-                defaultSize="30%"
-                className="h-full min-h-0 min-w-[280px] border-l border-border bg-card"
-                style={{ overflow: "hidden" }}
-                onResize={(size) => {
-                    setFeedOpen(size.asPercentage > 0.5);
-                }}
-            >
-                <div className="flex h-full min-h-0 flex-1 flex-col">
-                    <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-4 py-3">
-                        <div>
-                            <p className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
-                                ActivityWatch
-                            </p>
-                            <h2 className="text-sm font-semibold">
-                                Live Feed
-                            </h2>
+        <SidebarProvider defaultOpen>
+            <AppSidebar activePage={activePage} onNavigate={setActivePage} />
+            <SidebarInset className="relative flex h-svh min-h-0 w-full flex-col overflow-hidden p-0">
+                <Button
+                    variant="ghost"
+                    onClick={toggleFeed}
+                    title={feedOpen ? "Hide live feed" : "Open live feed"}
+                    aria-label={feedOpen ? "Hide live feed" : "Open live feed"}
+                    className="fixed top-2 right-2 z-50"
+                >
+                    {feedOpen ? (
+                        <div className="flex flex-row items-center justify-center gap-2">
+                            <span className="text-xs font-medium">
+                                Close Live Feed
+                            </span>
+                            <PanelRightClose className="size-4" />
                         </div>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={toggleFeed}
-                            className="shrink-0 gap-1.5"
-                        >
-                            <PanelRightClose className="size-3.5" />
-                            Close
-                        </Button>
-                    </div>
-                    <Separator />
-                    <div className="flex min-h-0 flex-1 flex-col gap-4 p-4">
-                        <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
-                            <PreviewConsole />
+                    ) : (
+                        <div className="flex flex-row items-center justify-center gap-2">
+                            <span className="text-xs font-medium">
+                                Open Live Feed
+                            </span>
+                            <PanelRightOpen className="size-4" />
                         </div>
-                    </div>
-                </div>
-            </ResizablePanel>
-        </ResizablePanelGroup>
+                    )}
+                </Button>
+                <ResizablePanelGroup
+                    orientation="horizontal"
+                    className="min-h-0 w-full flex-1"
+                    defaultLayout={{ main: 72, feed: 28 }}
+                >
+                    <ResizablePanel
+                        id="main"
+                        minSize="35%"
+                        className="flex min-h-0 min-w-0 flex-col"
+                    >
+                        <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-3">
+                            <SidebarTrigger />
+                            <h1 className="min-w-0 truncate text-sm font-semibold text-foreground">
+                                {getAppPageTitle(activePage)}
+                            </h1>
+                        </header>
+                        <div className="min-h-0 flex-1 overflow-y-auto bg-background">
+                            <div className="mx-auto max-w-5xl sm:p-8">
+                                <Card className="gap-0 py-0 shadow-none border-0 ring-0">
+                                    <CardContent className="px-4 py-6 sm:px-8 sm:py-8">
+                                        {activePage === "home" ? (
+                                            <AboutPage />
+                                        ) : null}
+                                        {activePage === "tracked-windows" ? (
+                                            <TrackedWindowsPlaceholder />
+                                        ) : null}
+                                        {activePage === "plugin-settings" ? (
+                                            <PluginSettingsPage
+                                                bucketMode={bucketMode}
+                                                setBucketMode={setBucketMode}
+                                                manualBucketId={manualBucketId}
+                                                setManualBucketId={
+                                                    setManualBucketId
+                                                }
+                                                watcherFilters={watcherFilters}
+                                                toggleWatcherFilter={
+                                                    toggleWatcherFilter
+                                                }
+                                            />
+                                        ) : null}
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </div>
+                    </ResizablePanel>
+
+                    <ResizablePanel
+                        id="feed"
+                        panelRef={feedPanelRef}
+                        collapsible
+                        collapsedSize="0%"
+                        minSize="18%"
+                        maxSize="42%"
+                        defaultSize="28%"
+                        className="flex min-h-0 min-w-[280px] flex-col border-l border-border bg-card"
+                        style={{ overflow: "hidden" }}
+                        onResize={(size) => {
+                            setFeedOpen(size.asPercentage > 0.5);
+                        }}
+                    >
+                        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+                            <div className="shrink-0 border-b border-border h-12 p-4 flex items-center justify-start">
+                                <h2 className="text-sm font-semibold">
+                                    ActivityWatch{" "}
+                                    <span className="ml-2 text-green-500">
+                                        Tracking
+                                    </span>
+                                </h2>
+                            </div>
+                            <div className="flex min-h-0 flex-1 flex-col p-4">
+                                <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
+                                    <PreviewConsole />
+                                </div>
+                            </div>
+                        </div>
+                    </ResizablePanel>
+                </ResizablePanelGroup>
+            </SidebarInset>
+        </SidebarProvider>
     );
 }
