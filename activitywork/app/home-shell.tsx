@@ -136,14 +136,16 @@ export function HomeShell() {
                             </h1>
                         </header>
                         <div className="min-h-0 flex-1 overflow-y-auto bg-background">
-                            <div className="mx-auto max-w-5xl sm:p-8">
+                            <div className="mx-auto max-w-5xl sm:p-3">
                                 <Card className="gap-0 py-0 shadow-none border-0 ring-0">
-                                    <CardContent className="px-4 py-6 sm:px-8 sm:py-8">
+                                    <CardContent className="px-4 sm:px-8 sm:py-8">
                                         {activePage === "home" ? (
                                             <AboutPage />
                                         ) : null}
                                         {activePage === "tracked-windows" ? (
-                                            <TrackedWindowsPlaceholder />
+                                            <div className="flex h-[calc(100svh-9rem)] min-h-0 flex-col">
+                                                <TrackedWindowsPlaceholder />
+                                            </div>
                                         ) : null}
                                         {activePage === "plugin-settings" ? (
                                             <PluginSettingsPage

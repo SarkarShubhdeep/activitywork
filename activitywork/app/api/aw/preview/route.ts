@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 
+import { selectBucketIdsFromPreviewUrl } from "@/lib/aw-preview-bucket-query";
 import {
   fetchBucketEvents,
   fetchBuckets,
-  selectPreferredBucketId,
 } from "@/lib/activitywatch-client";
 
 export const runtime = "nodejs";
@@ -22,60 +22,19 @@ function watcherFromBucketId(bucketId: string): WatcherCategory | "unknown" {
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
-    const bucketIdFromQuery = url.searchParams.get("bucketId");
-    const bucketIdsFromQuery = url.searchParams.get("bucketIds");
-    const watcherCategoriesFromQuery = url.searchParams.get("watcherCategories");
     const limitParam = url.searchParams.get("limit");
     const limit = limitParam ? Number(limitParam) : 50;
     const safeLimit = Number.isFinite(limit) && limit > 0 ? limit : 50;
 
     const buckets = await fetchBuckets();
-    const requestedBucketIds = bucketIdsFromQuery
-      ? bucketIdsFromQuery
-          .split(",")
-          .map((id) => id.trim())
-          .filter((id) => id.length > 0)
-      : [];
-    const requestedWatcherCategories = watcherCategoriesFromQuery
-      ? watcherCategoriesFromQuery
-          .split(",")
-          .map((id) => id.trim().toLowerCase())
-          .filter((id): id is WatcherCategory =>
-            ["window", "web", "vscode", "afk"].includes(id)
-          )
-      : [];
+    const bucketIds = selectBucketIdsFromPreviewUrl(url, buckets);
 
-    const bucketIdsToRead = new Set<string>();
-    if (bucketIdFromQuery) {
-      bucketIdsToRead.add(bucketIdFromQuery);
-    } else if (requestedBucketIds.length > 0) {
-      for (const id of requestedBucketIds) {
-        bucketIdsToRead.add(id);
-      }
-    } else if (requestedWatcherCategories.length > 0) {
-      for (const category of requestedWatcherCategories) {
-        const match = buckets.find((bucket) =>
-          bucket.id.toLowerCase().includes(`aw-watcher-${category}`)
-        );
-        if (match) {
-          bucketIdsToRead.add(match.id);
-        }
-      }
-    } else {
-      const selectedBucketId = selectPreferredBucketId(buckets);
-      if (selectedBucketId) {
-        bucketIdsToRead.add(selectedBucketId);
-      }
-    }
-
-    if (bucketIdsToRead.size === 0) {
+    if (bucketIds.length === 0) {
       return NextResponse.json(
         { ok: false, error: "No ActivityWatch buckets found." },
         { status: 404 }
       );
     }
-
-    const bucketIds = Array.from(bucketIdsToRead);
     const eventsByBucket = await Promise.all(
       bucketIds.map(async (bucketId) => ({
         bucketId,
