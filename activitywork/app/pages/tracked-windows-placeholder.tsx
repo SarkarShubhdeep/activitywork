@@ -34,11 +34,16 @@ export function TrackedWindowsPlaceholder() {
     const [rows, setRows] = React.useState<TrackedWindowRow[]>([]);
     const [loading, setLoading] = React.useState(true);
     const [error, setError] = React.useState<string | null>(null);
+    const loadInFlightRef = React.useRef(false);
 
     React.useEffect(() => {
         let cancelled = false;
 
         async function load() {
+            if (loadInFlightRef.current) {
+                return;
+            }
+            loadInFlightRef.current = true;
             setLoading(true);
             setError(null);
             try {
@@ -69,6 +74,7 @@ export function TrackedWindowsPlaceholder() {
                     );
                 }
             } finally {
+                loadInFlightRef.current = false;
                 if (!cancelled) {
                     setLoading(false);
                 }

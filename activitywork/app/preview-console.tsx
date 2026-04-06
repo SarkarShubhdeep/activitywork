@@ -208,6 +208,7 @@ export function PreviewConsole() {
     );
     const [bucketCardOpen, setBucketCardOpen] = useState(false);
     const knownEventIdsRef = useRef<Set<string>>(new Set());
+    const previewLoadInFlightRef = useRef(false);
 
     useEffect(() => {
         function refreshPreferences() {
@@ -228,6 +229,10 @@ export function PreviewConsole() {
         let lastSeenTimestamp: string | null = null;
 
         async function loadPreview() {
+            if (previewLoadInFlightRef.current) {
+                return;
+            }
+            previewLoadInFlightRef.current = true;
             try {
                 const prefs = readSourcePreferences();
                 setSourcePreferences(prefs);
@@ -283,6 +288,8 @@ export function PreviewConsole() {
                 if (isMounted) {
                     setError(message);
                 }
+            } finally {
+                previewLoadInFlightRef.current = false;
             }
         }
 
