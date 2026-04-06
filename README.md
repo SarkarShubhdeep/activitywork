@@ -19,6 +19,10 @@ The Next.js app lives in [`activitywork/`](./activitywork/).
 - SQLite (local development database)
 - ESLint
 
+## Milestones
+
+- **2026-04-06 — Persistent app catalog & ignore list (merge checkpoint):** Shipped on `feature/ignore-list`. Details: [docs/milestone-ignore-list-main-merge.md](./docs/milestone-ignore-list-main-merge.md). Further work can continue on that branch after merging to `main`.
+
 ## Current features
 
 - Landing page at `/` for plugin status and quick validation.
@@ -28,6 +32,7 @@ The Next.js app lives in [`activitywork/`](./activitywork/).
   - Polls every 5 seconds
   - Logs `ActivityWatch live update:` when newer events are detected
 - Watcher discovery in preview response (`buckets`) so you can inspect available sources.
+- Tracked Apps: cumulative app catalog in SQLite, `GET /api/apps/catalog`, `POST /api/apps/catalog/sync`, ignore/unignore APIs, and UI on the Tracked Apps page (see milestone doc above).
 
 ## ActivityWatch preview behavior
 
