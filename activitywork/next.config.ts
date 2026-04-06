@@ -33,6 +33,7 @@ function turbopackDependencyAliases(rootDir: string): Record<string, string> {
 
 const nextConfig: NextConfig = {
     devIndicators: false,
+    serverExternalPackages: ["better-sqlite3"],
     turbopack: {
         root: configDir,
         resolveAlias: turbopackDependencyAliases(configDir),

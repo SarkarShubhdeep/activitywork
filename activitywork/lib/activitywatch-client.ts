@@ -14,15 +14,71 @@ export type ActivityWatchEvent = {
 
 const DEFAULT_ACTIVITYWATCH_BASE_URL = "http://localhost:5600/api/0";
 
+/** Default ceiling for how long we wait on ActivityWatch before failing the request. */
+export const DEFAULT_ACTIVITYWATCH_FETCH_TIMEOUT_MS = 12_000;
+
+/** Max parallel bucket event fetches to limit load on ActivityWatch and memory spikes. */
+export const DEFAULT_ACTIVITYWATCH_BUCKET_CONCURRENCY = 2;
+
+export type ActivityWatchFetchOptions = {
+  signal?: AbortSignal;
+  /** Total timeout for this HTTP request (uses AbortSignal.timeout). */
+  timeoutMs?: number;
+};
+
 function getBaseUrl() {
   const baseUrl =
     process.env.ACTIVITYWATCH_BASE_URL ?? DEFAULT_ACTIVITYWATCH_BASE_URL;
   return baseUrl.replace(/\/$/, "");
 }
 
-export async function fetchBuckets() {
+function requestSignal(
+  options?: ActivityWatchFetchOptions,
+): AbortSignal | undefined {
+  const timeoutMs =
+    options?.timeoutMs ?? DEFAULT_ACTIVITYWATCH_FETCH_TIMEOUT_MS;
+  const timeoutSignal = AbortSignal.timeout(timeoutMs);
+  if (!options?.signal) {
+    return timeoutSignal;
+  }
+  return AbortSignal.any([options.signal, timeoutSignal]);
+}
+
+/**
+ * Runs async work on `items` with at most `concurrency` in flight (stable order).
+ */
+export async function mapWithConcurrency<T, R>(
+  items: readonly T[],
+  concurrency: number,
+  fn: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  if (items.length === 0) {
+    return [];
+  }
+  const results = new Array<R>(items.length);
+  const limit = Math.max(1, concurrency);
+  let next = 0;
+
+  async function worker() {
+    while (true) {
+      const i = next;
+      next += 1;
+      if (i >= items.length) return;
+      results[i] = await fn(items[i], i);
+    }
+  }
+
+  const workers = Array.from({ length: Math.min(limit, items.length) }, () =>
+    worker(),
+  );
+  await Promise.all(workers);
+  return results;
+}
+
+export async function fetchBuckets(options?: ActivityWatchFetchOptions) {
   const response = await fetch(`${getBaseUrl()}/buckets`, {
     cache: "no-store",
+    signal: requestSignal(options),
   });
 
   if (!response.ok) {
@@ -39,7 +95,11 @@ export async function fetchBuckets() {
   }));
 }
 
-export async function fetchBucketEvents(bucketId: string, limit = 50) {
+export async function fetchBucketEvents(
+  bucketId: string,
+  limit = 50,
+  options?: ActivityWatchFetchOptions,
+) {
   const end = new Date();
   const start = new Date(end.getTime() - 1000 * 60 * 10);
 
@@ -51,7 +111,7 @@ export async function fetchBucketEvents(bucketId: string, limit = 50) {
 
   const response = await fetch(
     `${getBaseUrl()}/buckets/${encodeURIComponent(bucketId)}/events?${params.toString()}`,
-    { cache: "no-store" }
+    { cache: "no-store", signal: requestSignal(options) },
   );
 
   if (!response.ok) {
@@ -61,6 +121,26 @@ export async function fetchBucketEvents(bucketId: string, limit = 50) {
   }
 
   return (await response.json()) as ActivityWatchEvent[];
+}
+
+export type FetchEventsForBucketsOptions = ActivityWatchFetchOptions & {
+  concurrency?: number;
+};
+
+/**
+ * Fetches recent events for each bucket ID with bounded parallelism.
+ */
+export async function fetchEventsForBuckets(
+  bucketIds: string[],
+  limit: number,
+  options?: FetchEventsForBucketsOptions,
+) {
+  const concurrency =
+    options?.concurrency ?? DEFAULT_ACTIVITYWATCH_BUCKET_CONCURRENCY;
+  return mapWithConcurrency(bucketIds, concurrency, async (bucketId) => ({
+    bucketId,
+    events: await fetchBucketEvents(bucketId, limit, options),
+  }));
 }
 
 export function selectPreferredBucketId(buckets: ActivityWatchBucket[]) {

@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { selectBucketIdsFromPreviewUrl } from "@/lib/aw-preview-bucket-query";
-import {
-  fetchBucketEvents,
-  fetchBuckets,
-} from "@/lib/activitywatch-client";
+import { fetchBuckets, fetchEventsForBuckets } from "@/lib/activitywatch-client";
 
 export const runtime = "nodejs";
 
@@ -35,11 +32,9 @@ export async function GET(request: Request) {
         { status: 404 }
       );
     }
-    const eventsByBucket = await Promise.all(
-      bucketIds.map(async (bucketId) => ({
-        bucketId,
-        events: await fetchBucketEvents(bucketId, safeLimit),
-      }))
+    const eventsByBucket = await fetchEventsForBuckets(
+      bucketIds,
+      safeLimit
     );
     const mergedEvents = eventsByBucket
       .flatMap(({ bucketId, events }) =>

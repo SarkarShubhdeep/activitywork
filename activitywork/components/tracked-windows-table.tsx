@@ -18,10 +18,13 @@ export type TrackedWindowRow = {
     index: number;
     appName: string;
     lastTitle: string;
+    ignored: boolean;
 };
 
 export type TrackedWindowsTableProps = {
     rows: TrackedWindowRow[];
+    onSetIgnored?: (appName: string, ignored: boolean) => void | Promise<void>;
+    busyAppName?: string | null;
 };
 
 const TABLE_COLGROUP = (
@@ -51,7 +54,11 @@ function openContextMenuFromClick(el: HTMLElement) {
  * Split header/body tables with synced horizontal scroll so `position: sticky` works
  * with the shell’s vertical scroll (sticky must not sit inside the overflow-x scroller).
  */
-export function TrackedWindowsTable({ rows }: TrackedWindowsTableProps) {
+export function TrackedWindowsTable({
+    rows,
+    onSetIgnored,
+    busyAppName,
+}: TrackedWindowsTableProps) {
     const headScrollRef = React.useRef<HTMLDivElement>(null);
     const bodyScrollRef = React.useRef<HTMLDivElement>(null);
     const syncingScroll = React.useRef(false);
@@ -129,13 +136,30 @@ export function TrackedWindowsTable({ rows }: TrackedWindowsTableProps) {
                             {rows.map((row) => (
                                 <tr
                                     key={row.rowKey}
-                                    className="bg-background hover:bg-muted/20"
+                                    className={
+                                        row.ignored
+                                            ? "bg-muted/30 hover:bg-muted/40"
+                                            : "bg-background hover:bg-muted/20"
+                                    }
                                 >
                                     <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-muted-foreground">
                                         {row.index}
                                     </td>
                                     <td className="px-4 py-3 font-medium">
-                                        {row.appName}
+                                        <span
+                                            className={
+                                                row.ignored
+                                                    ? "text-muted-foreground line-through decoration-muted-foreground/60"
+                                                    : undefined
+                                            }
+                                        >
+                                            {row.appName}
+                                        </span>
+                                        {row.ignored ? (
+                                            <span className="ml-2 text-xs font-normal text-muted-foreground">
+                                                (ignored)
+                                            </span>
+                                        ) : null}
                                     </td>
                                     <td className="truncate px-4 py-3 text-muted-foreground">
                                         {row.lastTitle}
@@ -147,6 +171,11 @@ export function TrackedWindowsTable({ rows }: TrackedWindowsTableProps) {
                                                     type="button"
                                                     variant="ghost"
                                                     size="sm"
+                                                    disabled={
+                                                        busyAppName ===
+                                                            row.appName ||
+                                                        !onSetIgnored
+                                                    }
                                                     className="text-muted-foreground hover:text-foreground"
                                                     aria-label={`More actions for ${row.appName}`}
                                                     onClick={(e) => {
@@ -167,18 +196,34 @@ export function TrackedWindowsTable({ rows }: TrackedWindowsTableProps) {
                                             </ContextMenuTrigger>
                                             <ContextMenuContent className="min-w-44">
                                                 <ContextMenuItem
+                                                    disabled={
+                                                        row.ignored ||
+                                                        busyAppName ===
+                                                            row.appName
+                                                    }
                                                     onSelect={() => {
-                                                        /* Option #1 — to be wired */
+                                                        void onSetIgnored?.(
+                                                            row.appName,
+                                                            true,
+                                                        );
                                                     }}
                                                 >
-                                                    Option #1
+                                                    Ignore app
                                                 </ContextMenuItem>
                                                 <ContextMenuItem
+                                                    disabled={
+                                                        !row.ignored ||
+                                                        busyAppName ===
+                                                            row.appName
+                                                    }
                                                     onSelect={() => {
-                                                        /* Option #2 — to be wired */
+                                                        void onSetIgnored?.(
+                                                            row.appName,
+                                                            false,
+                                                        );
                                                     }}
                                                 >
-                                                    Option #2
+                                                    Unignore app
                                                 </ContextMenuItem>
                                             </ContextMenuContent>
                                         </ContextMenu>
