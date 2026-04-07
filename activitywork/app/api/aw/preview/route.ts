@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { selectBucketIdsFromPreviewUrl } from "@/lib/aw-preview-bucket-query";
+import { resolvedAppNameForEvent } from "@/lib/aw-tracked-apps";
 import { fetchBuckets, fetchEventsForBuckets } from "@/lib/activitywatch-client";
+import { normalizeAppNameForStorage } from "@/lib/catalog-app-name";
+import { loadIgnoredAppNameSet } from "@/lib/catalog-sqlite";
 
 export const runtime = "nodejs";
 
@@ -49,14 +52,25 @@ export async function GET(request: Request) {
           new Date(b.timestamp ?? 0).getTime() - new Date(a.timestamp ?? 0).getTime()
       );
 
+    const ignoredNames = loadIgnoredAppNameSet();
+    const visibleEvents = mergedEvents.filter((event) => {
+      const data = event.data ?? {};
+      const resolved = resolvedAppNameForEvent(
+        data as Record<string, unknown>,
+      );
+      const key = normalizeAppNameForStorage(resolved);
+      if (!key) return true;
+      return !ignoredNames.has(key);
+    });
+
     return NextResponse.json({
       ok: true,
       bucketId: bucketIds.join(","),
       bucketCount: buckets.length,
       buckets,
-      eventCount: mergedEvents.length,
-      latestEventAt: mergedEvents[0]?.timestamp ?? null,
-      sample: mergedEvents.slice(0, 10),
+      eventCount: visibleEvents.length,
+      latestEventAt: visibleEvents[0]?.timestamp ?? null,
+      sample: visibleEvents.slice(0, 10),
     });
   } catch (error) {
     const message =

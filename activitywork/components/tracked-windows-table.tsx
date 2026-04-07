@@ -2,6 +2,8 @@
 
 import * as React from "react";
 
+import { X } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import {
     ContextMenu,
@@ -146,20 +148,28 @@ export function TrackedWindowsTable({
                                         {row.index}
                                     </td>
                                     <td className="px-4 py-3 font-medium">
-                                        <span
-                                            className={
-                                                row.ignored
-                                                    ? "text-muted-foreground line-through decoration-muted-foreground/60"
-                                                    : undefined
-                                            }
-                                        >
-                                            {row.appName}
-                                        </span>
-                                        {row.ignored ? (
-                                            <span className="ml-2 text-xs font-normal text-muted-foreground">
-                                                (ignored)
+                                        <span className="inline-flex items-center gap-2">
+                                            {row.ignored ? (
+                                                <X
+                                                    className="size-4 shrink-0 text-muted-foreground"
+                                                    aria-hidden
+                                                />
+                                            ) : null}
+                                            <span
+                                                className={
+                                                    row.ignored
+                                                        ? "text-muted-foreground line-through decoration-muted-foreground/60"
+                                                        : undefined
+                                                }
+                                            >
+                                                {row.appName}
                                             </span>
-                                        ) : null}
+                                            {row.ignored ? (
+                                                <span className="sr-only">
+                                                    Ignored
+                                                </span>
+                                            ) : null}
+                                        </span>
                                     </td>
                                     <td className="truncate px-4 py-3 text-muted-foreground">
                                         {row.lastTitle}

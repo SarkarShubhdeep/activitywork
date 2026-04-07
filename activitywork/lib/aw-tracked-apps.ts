@@ -14,6 +14,11 @@ export function appNameFromEventData(data: Record<string, unknown>) {
     );
 }
 
+/** Same resolved app label as the live feed (`normalizeEvent`), for ignore matching. */
+export function resolvedAppNameForEvent(data: Record<string, unknown>): string {
+    return appNameFromEventData(data) ?? "unknown";
+}
+
 export function titleFromEventData(data: Record<string, unknown>, fallbackApp: string) {
     return (
         asString(data.title) ??
@@ -45,8 +50,7 @@ export function aggregateUniqueAppsFromEvents(
 
     for (const event of events) {
         const data = event.data ?? {};
-        const app =
-            appNameFromEventData(data as Record<string, unknown>) ?? "unknown";
+        const app = resolvedAppNameForEvent(data as Record<string, unknown>);
         const lastTitle = titleFromEventData(
             data as Record<string, unknown>,
             app,

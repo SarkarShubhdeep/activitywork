@@ -210,6 +210,7 @@ export function TrackedWindowsPlaceholder() {
                 }
                 setError(null);
                 await loadCatalog();
+                window.dispatchEvent(new CustomEvent("aw-catalog-ignore-changed"));
             } catch (e) {
                 setError(
                     e instanceof Error ? e.message : "Ignore request failed",

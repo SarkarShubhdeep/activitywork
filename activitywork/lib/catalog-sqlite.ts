@@ -193,3 +193,11 @@ export function removeIgnoredAppSqlite(appName: string) {
     const db = getCatalogDatabase();
     db.prepare(`DELETE FROM "IgnoredApp" WHERE "appName" = ?`).run(appName);
 }
+
+export function loadIgnoredAppNameSet(): Set<string> {
+    const db = getCatalogDatabase();
+    const rows = db
+        .prepare(`SELECT "appName" AS appName FROM "IgnoredApp"`)
+        .all() as { appName: string }[];
+    return new Set(rows.map((r) => r.appName));
+}

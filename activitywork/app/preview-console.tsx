@@ -209,6 +209,7 @@ export function PreviewConsole() {
     const [bucketCardOpen, setBucketCardOpen] = useState(false);
     const knownEventIdsRef = useRef<Set<string>>(new Set());
     const previewLoadInFlightRef = useRef(false);
+    const loadPreviewRef = useRef<() => void>(() => {});
 
     useEffect(() => {
         function refreshPreferences() {
@@ -293,6 +294,10 @@ export function PreviewConsole() {
             }
         }
 
+        loadPreviewRef.current = () => {
+            void loadPreview();
+        };
+
         void loadPreview();
         const intervalId = setInterval(() => {
             void loadPreview();
@@ -301,6 +306,19 @@ export function PreviewConsole() {
         return () => {
             isMounted = false;
             clearInterval(intervalId);
+        };
+    }, []);
+
+    useEffect(() => {
+        function onIgnoreListChanged() {
+            loadPreviewRef.current();
+        }
+        window.addEventListener("aw-catalog-ignore-changed", onIgnoreListChanged);
+        return () => {
+            window.removeEventListener(
+                "aw-catalog-ignore-changed",
+                onIgnoreListChanged,
+            );
         };
     }, []);
 
