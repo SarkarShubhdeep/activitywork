@@ -18,3 +18,16 @@ model ActivityRecord {
   payload   String
   createdAt DateTime @default(now())
 }
+
+/// Cumulative set of app names ever observed from ActivityWatch (union over syncs).
+model KnownApp {
+  appName     String   @id
+  firstSeenAt DateTime
+  lastSeenAt  DateTime
+  lastTitle   String?
+}
+
+/// User-selected apps to ignore (e.g. for future feed filtering).
+model IgnoredApp {
+  appName String @id
+}

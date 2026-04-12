@@ -41,3 +41,8 @@ yarn-error.log*
 next-env.d.ts
 
 /app/generated/prisma
+
+# Local SQLite databases and WAL mode sidecars
+*.db
+*.db-shm
+*.db-wal
